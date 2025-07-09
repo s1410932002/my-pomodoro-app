@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDowithTomato - 番茄鐘與代辦事項</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles if needed, but Tailwind should cover most */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
+        }
+        /* Hide default file input */
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex flex-col items-center justify-center p-4 text-white">
+
+    <!-- App Container -->
+    <div class="w-full max-w-md flex flex-col items-center justify-center">
+        <!-- App Header -->
+        <header class="w-full bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-t-2xl p-4 flex items-center justify-center shadow-lg">
+            <h1 class="text-3xl font-bold text-center">
+                我的手機應用程式
+            </h1>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="w-full bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg p-6 rounded-b-2xl shadow-lg flex flex-col items-center justify-center flex-grow space-y-6">
+
+            <!-- To-Do List Section -->
+            <div class="w-full bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-2xl p-4 shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">代辦事項</h2>
+                    <button id="add-todo-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-75">
+                        新增
+                    </button>
+                </div>
+                <ul id="todo-list" class="space-y-2">
+                    <!-- To-Do items will be rendered here by JavaScript -->
+                    <p id="no-todos-message" class="text-center text-gray-300 hidden">目前沒有代辦事項。</p>
+                </ul>
+            </div>
+
+            <!-- Pomodoro Timer Section -->
+            <div class="w-full bg-white bg-opacity-20 backdrop-filter backdrop-blur-lg rounded-2xl p-6 shadow-md flex flex-col items-center">
+                <h2 class="text-2xl font-bold text-center mb-4">番茄鐘</h2>
+                <div id="timer-display" class="text-6xl font-mono mb-6">
+                    25:00
+                </div>
+                <div class="flex space-x-4">
+                    <button id="start-stop-timer-btn" class="bg-white text-blue-700 font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-blue-100 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-75">
+                        開始
+                    </button>
+                    <button id="reset-timer-btn" class="bg-white text-blue-700 font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-blue-100 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-75">
+                        重設
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer (optional) -->
+        <footer class="mt-8 text-sm text-white text-opacity-80">
+            &copy; 2025 您的應用程式
+        </footer>
+    </div>
+
+    <!-- Edit/Add To-Do Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-2xl p-6 shadow-xl w-full max-w-sm text-gray-800">
+            <h3 id="edit-modal-title" class="text-2xl font-bold text-center mb-6">編輯代辦事項</h3>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label for="modal-todo-text" class="block text-lg font-medium mb-2">內容：</label>
+                    <input
+                        id="modal-todo-text"
+                        type="text"
+                        class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="輸入代辦事項內容"
+                    />
+                </div>
+                <div>
+                    <label for="modal-pomodoros" class="block text-lg font-medium mb-2">番茄鐘數量：</label>
+                    <input
+                        id="modal-pomodoros"
+                        type="number"
+                        min="0"
+                        class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+            </div>
+            <div class="flex flex-col space-y-4">
+                <button id="modal-save-btn" class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-75">
+                    確定
+                </button>
+                <button id="modal-delete-btn" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:bg-red-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-opacity-75 hidden">
+                    刪除
+                </button>
+                <button id="modal-cancel-btn" class="bg-gray-400 text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-75">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-2xl p-6 shadow-xl w-full max-w-sm text-gray-800 text-center">
+            <h3 class="text-2xl font-bold mb-4">提示</h3>
+            <p id="alert-message" class="text-lg mb-6"></p>
+            <button id="alert-ok-btn" class="bg-blue-600 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-opacity-75">
+                確定
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Global State Variables ---
+        const initialPomodoroMinutes = 25;
+        let timerTime = initialPomodoroMinutes * 60; // in seconds
+        let isTimerRunning = false;
+        let timerInterval = null; // Stores the interval ID
+        let activeTodoIdForTimer = null; // Tracks which todo's timer is active
+
+        let todos = [
+            { id: 1, text: '唸書', completed: false, pomodoros: 3 },
+            { id: 2, text: '作筆記', completed: false, pomodoros: 2 },
+            { id: 3, text: '剪影片', completed: false, pomodoros: 4 },
+            { id: 4, text: '寫小說', completed: false, pomodoros: 5 },
+        ];
+
+        let editingTodo = null; // Stores the todo currently being edited or added
+
+        // --- DOM Element References ---
+        const timerDisplay = document.getElementById('timer-display');
+        const startStopTimerBtn = document.getElementById('start-stop-timer-btn');
+        const resetTimerBtn = document.getElementById('reset-timer-btn');
+        const todoList = document.getElementById('todo-list');
+        const noTodosMessage = document.getElementById('no-todos-message');
+        const addTodoBtn = document.getElementById('add-todo-btn');
+
+        // Edit/Add Modal elements
+        const editModal = document.getElementById('edit-modal');
+        const editModalTitle = document.getElementById('edit-modal-title');
+        const modalTodoText = document.getElementById('modal-todo-text');
+        const modalPomodoros = document.getElementById('modal-pomodoros');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const modalDeleteBtn = document.getElementById('modal-delete-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        // Alert Modal elements
+        const alertModal = document.getElementById('alert-modal');
+        const alertMessageElement = document.getElementById('alert-message');
+        const alertOkBtn = document.getElementById('alert-ok-btn');
+
+        // --- Pomodoro Timer Functions ---
+
+        /**
+         * Formats seconds into MM:SS string.
+         * @param {number} seconds - The total seconds.
+         * @returns {string} Formatted time string.
+         */
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Updates the timer display in the UI.
+         */
+        function updateTimerDisplay() {
+            timerDisplay.textContent = formatTime(timerTime);
+        }
+
+        /**
+         * Starts the pomodoro timer.
+         */
+        function startTimer() {
+            if (isTimerRunning) return; // Prevent multiple intervals
+            isTimerRunning = true;
+            startStopTimerBtn.textContent = '暫停';
+            timerInterval = setInterval(() => {
+                timerTime--;
+                updateTimerDisplay();
+                if (timerTime <= 0) {
+                    stopTimer();
+                    showAlert('時間到！休息一下吧！');
+                    activeTodoIdForTimer = null; // Clear active todo when timer finishes
+                    renderTodos(); // Re-render to update active todo styling
+                }
+            }, 1000);
+        }
+
+        /**
+         * Stops the pomodoro timer.
+         */
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            startStopTimerBtn.textContent = '開始';
+        }
+
+        /**
+         * Handles the click for the main timer start/stop button.
+         */
+        function handleStartStopTimer() {
+            if (isTimerRunning) {
+                stopTimer();
+                activeTodoIdForTimer = null; // Clear active todo when stopping manually
+                renderTodos(); // Re-render to update active todo styling
+            } else {
+                startTimer();
+            }
+        }
+
+        /**
+         * Handles the click for the main timer reset button.
+         */
+        function handleResetTimer() {
+            stopTimer();
+            timerTime = initialPomodoroMinutes * 60;
+            updateTimerDisplay();
+            activeTodoIdForTimer = null; // Clear active todo on reset
+            renderTodos(); // Re-render to update active todo styling
+        }
+
+        // --- To-Do List Functions ---
+
+        /**
+         * Renders all to-do items into the UI.
+         */
+        function renderTodos() {
+            todoList.innerHTML = ''; // Clear existing list items
+
+            if (todos.length === 0) {
+                noTodosMessage.classList.remove('hidden');
+            } else {
+                noTodosMessage.classList.add('hidden');
+            }
+
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `flex items-center justify-between text-lg p-2 rounded-lg transition duration-200 ${
+                    todo.id === activeTodoIdForTimer ? 'bg-yellow-400 text-gray-900 shadow-md' : 'hover:bg-white hover:bg-opacity-10 cursor-pointer'
+                }`;
+
+                // Span for todo text (clickable for edit)
+                const textSpan = document.createElement('span');
+                textSpan.className = `flex-grow ${todo.completed ? 'line-through text-gray-300' : ''}`;
+                textSpan.textContent = todo.text;
+                textSpan.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevent li click if span is clicked
+                    openEditModal(todo);
+                });
+
+                // Container for buttons and checkbox
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'flex items-center space-x-2';
+
+                // Start button for specific todo
+                const startTodoBtn = document.createElement('button');
+                startTodoBtn.textContent = '開始';
+                startTodoBtn.className = `py-1 px-3 rounded-full text-sm font-semibold ${
+                    todo.id === activeTodoIdForTimer && isTimerRunning
+                        ? 'bg-red-500 text-white' // Highlight if this todo's timer is running
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                } transition duration-200`;
+                startTodoBtn.disabled = (todo.id === activeTodoIdForTimer && isTimerRunning); // Disable if this todo's timer is already running
+                startTodoBtn.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevent li click
+                    handleStartTodoTimer(todo);
+                });
+
+                // Checkbox for completion
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = todo.completed;
+                checkbox.className = 'form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500';
+                checkbox.addEventListener('change', (event) => {
+                    event.stopPropagation(); // Prevent li click
+                    toggleTodoCompletion(todo.id);
+                });
+
+                controlsDiv.appendChild(startTodoBtn);
+                controlsDiv.appendChild(checkbox);
+                li.appendChild(textSpan);
+                li.appendChild(controlsDiv);
+                todoList.appendChild(li);
+            });
+        }
+
+        /**
+         * Toggles the completion status of a to-do item.
+         * @param {number} id - The ID of the to-do item.
+         */
+        function toggleTodoCompletion(id) {
+            todos = todos.map(todo =>
+                todo.id === id ? { ...todo, completed: !todo.completed } : todo
+            );
+            renderTodos();
+        }
+
+        /**
+         * Opens the edit/add modal.
+         * @param {object|null} todo - The todo object to edit, or null for adding a new todo.
+         */
+        function openEditModal(todo = null) {
+            editingTodo = todo ? { ...todo } : { id: Date.now(), text: '', completed: false, pomodoros: 1 }; // Create a copy or new object
+            
+            editModalTitle.textContent = todo ? '編輯代辦事項' : '新增代辦事項';
+            modalTodoText.value = editingTodo.text;
+            modalPomodoros.value = editingTodo.pomodoros;
+
+            // Show/hide delete button based on whether it's an existing todo
+            if (todo) {
+                modalDeleteBtn.classList.remove('hidden');
+            } else {
+                modalDeleteBtn.classList.add('hidden');
+            }
+
+            editModal.classList.remove('hidden');
+        }
+
+        /**
+         * Closes the edit/add modal.
+         */
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            editingTodo = null;
+        }
+
+        /**
+         * Saves (adds or updates) a to-do item.
+         */
+        function saveTodo() {
+            if (modalTodoText.value.trim() === '') {
+                showAlert('代辦事項內容不能為空！');
+                return;
+            }
+
+            editingTodo.text = modalTodoText.value.trim();
+            editingTodo.pomodoros = parseInt(modalPomodoros.value) || 0;
+
+            const existingTodoIndex = todos.findIndex(t => t.id === editingTodo.id);
+            if (existingTodoIndex > -1) {
+                // Update existing todo
+                todos[existingTodoIndex] = editingTodo;
+            } else {
+                // Add new todo
+                todos.push(editingTodo);
+            }
+            renderTodos();
+            closeEditModal();
+        }
+
+        /**
+         * Deletes the currently editing to-do item.
+         */
+        function deleteTodo() {
+            if (editingTodo && confirm('確定要刪除此代辦事項嗎？')) { // Using confirm for simplicity, replace with custom modal if needed
+                todos = todos.filter(t => t.id !== editingTodo.id);
+                renderTodos();
+                closeEditModal();
+            }
+        }
+
+        /**
+         * Handles starting the pomodoro timer for a specific to-do item.
+         * @param {object} todo - The todo object to start the timer for.
+         */
+        function handleStartTodoTimer(todo) {
+            stopTimer(); // Stop any currently running timer
+            timerTime = todo.pomodoros * initialPomodoroMinutes * 60; // Calculate time based on todo's pomodoros
+            activeTodoIdForTimer = todo.id; // Set the active todo for visual indication
+            updateTimerDisplay();
+            startTimer();
+            renderTodos(); // Re-render to update active todo styling
+        }
+
+        // --- Custom Alert Modal Functions ---
+
+        /**
+         * Displays a custom alert modal with a given message.
+         * @param {string} message - The message to display.
+         */
+        function showAlert(message) {
+            alertMessageElement.textContent = message;
+            alertModal.classList.remove('hidden');
+        }
+
+        /**
+         * Closes the custom alert modal.
+         */
+        function closeAlert() {
+            alertModal.classList.add('hidden');
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTimerDisplay(); // Initialize timer display
+            renderTodos(); // Render initial todos
+
+            // Timer buttons
+            startStopTimerBtn.addEventListener('click', handleStartStopTimer);
+            resetTimerBtn.addEventListener('click', handleResetTimer);
+
+            // To-Do list buttons
+            addTodoBtn.addEventListener('click', () => openEditModal(null));
+
+            // Edit/Add Modal buttons
+            modalSaveBtn.addEventListener('click', saveTodo);
+            modalDeleteBtn.addEventListener('click', deleteTodo);
+            modalCancelBtn.addEventListener('click', closeEditModal);
+
+            // Alert Modal button
+            alertOkBtn.addEventListener('click', closeAlert);
+        });
+    </script>
+</body>
+</html>
